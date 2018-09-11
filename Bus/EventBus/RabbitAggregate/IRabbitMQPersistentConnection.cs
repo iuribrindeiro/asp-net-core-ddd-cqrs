@@ -5,7 +5,7 @@ using RabbitMQ.Client;
 
 namespace Bus.EventBus.RabbitAggregate
 {
-    public interface IRabbitPersistentConnection : IDisposable
+    public interface IRabbitMQPersistentConnection : IDisposable
     {
         bool IsConnected { get; }
 

@@ -12,17 +12,17 @@ using RabbitMQ.Client.Exceptions;
 
 namespace Bus.EventBus.RabbitAggregate
 {
-    public class RabbitPersistentConnection : IRabbitPersistentConnection
+    public class RabbitMqPersistentConnection : IRabbitMQPersistentConnection
     {
         private readonly IConnectionFactory _connectionFactory;
-        private readonly ILogger<RabbitPersistentConnection> _logger;
+        private readonly ILogger<RabbitMqPersistentConnection> _logger;
         private readonly int _retryCount;
         private IConnection _connection;
         private bool _disposed;
 
         private readonly object _syncRoot = new object();
 
-        public RabbitPersistentConnection(IConnectionFactory connectionFactory, ILogger<RabbitPersistentConnection> logger, int retryCount = 10)
+        public RabbitMqPersistentConnection(IConnectionFactory connectionFactory, ILogger<RabbitMqPersistentConnection> logger, int retryCount = 10)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

@@ -5,20 +5,20 @@ namespace Bus.Interfaces
 {
     public interface IEventBus
     {
-        void Publish(AbstractEvent abstractEvent);
+        void Publish(IntegrationEvent integrationEvent);
 
         void Subscribe<TEvent, TEventHandler>()
-            where TEvent : AbstractEvent
-            where TEventHandler : IEventHandler<TEvent>;
+            where TEvent : IntegrationEvent
+            where TEventHandler : IIntegrationEventHandler<TEvent>;
 
         void SubscribeDynamic<TEventHandler>(string eventName)
-            where TEventHandler : IDynamicEventHandler;
+            where TEventHandler : IDynamicIntegrationEventHandler;
 
         void Unsubscribe<TEvent, TEventHandler>()
-            where TEvent : AbstractEvent
-            where TEventHandler : IEventHandler<TEvent>;
+            where TEvent : IntegrationEvent
+            where TEventHandler : IIntegrationEventHandler<TEvent>;
 
         void Unsubscribe<TEventHandler>(string eventName) 
-            where TEventHandler : IDynamicEventHandler;
+            where TEventHandler : IDynamicIntegrationEventHandler;
     }
 }

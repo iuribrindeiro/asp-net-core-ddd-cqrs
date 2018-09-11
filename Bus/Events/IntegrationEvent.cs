@@ -2,9 +2,9 @@ using System;
 
 namespace Bus.Events
 {
-    public abstract class AbstractEvent
+    public abstract class IntegrationEvent
     {
-        protected AbstractEvent()
+        protected IntegrationEvent()
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.UtcNow;
