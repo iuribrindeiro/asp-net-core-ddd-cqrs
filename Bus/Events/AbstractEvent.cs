@@ -1,10 +1,10 @@
 using System;
 
-namespace Bus.Events.Base
+namespace Bus.Events
 {
-    public abstract class Event
+    public abstract class AbstractEvent
     {
-        protected Event()
+        protected AbstractEvent()
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.UtcNow;

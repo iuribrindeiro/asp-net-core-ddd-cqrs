@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
-using Bus.Events.Base;
+using Bus.Events;
 
 namespace Bus.EventHandler
 {
-    public interface IEventHandler<in TEvent> where TEvent : Event
+    public interface IEventHandler<in TEvent> where TEvent : AbstractEvent
     {
         Task Handle(TEvent @event);
     }
