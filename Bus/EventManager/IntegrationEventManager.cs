@@ -38,12 +38,15 @@ namespace Bus.EventManager
             where T : IntegrationEvent
             where TH : IIntegrationEventHandler<T>
         {
-            throw new NotImplementedException();
+            var subscriptionToRemove = FindSubscriptionToRemove<T, TH>();
+            DoRemoveHandler(GetEventName<T>(), subscriptionToRemove);
         }
 
-        public void RemoveDynamicSubscription<TH>(string eventName) where TH : IDynamicIntegrationEventHandler
+        public void RemoveDynamicSubscription<TH>(string eventName) 
+            where TH : IDynamicIntegrationEventHandler
         {
-            throw new NotImplementedException();
+            var subscriptionToRemove = FindDynamicSubscriptionToRemove<TH>(eventName);
+            DoRemoveHandler(eventName, subscriptionToRemove);
         }
 
         public bool HasSubscriptionsForEvent<T>() where T : IntegrationEvent
@@ -89,6 +92,50 @@ namespace Bus.EventManager
                 _subscriptions[eventName].Add(SubscriptionInfo.Dynamic(handlerType));
             else
                 _subscriptions[eventName].Add(SubscriptionInfo.Typed(handlerType));
+        }
+
+        private SubscriptionInfo FindSubscriptionToRemove<T, TH>() 
+            where T : IntegrationEvent
+            where TH : IIntegrationEventHandler<T>
+        {
+            return DoFindSubscriptionToRemove(GetEventName<T>(), typeof(TH));
+        }
+
+        private SubscriptionInfo FindDynamicSubscriptionToRemove<TH>(string eventName)
+            where TH : IDynamicIntegrationEventHandler
+        {
+            return DoFindSubscriptionToRemove(eventName, typeof(TH));
+        }
+
+        private SubscriptionInfo DoFindSubscriptionToRemove(string eventName, Type handlerType) 
+        {
+            if (!HasSubscriptionsForEvent(eventName))
+                return null;
+
+            return _subscriptions[eventName].FirstOrDefault(s => s.HandlerType == handlerType);
+        }
+
+        private void DoRemoveHandler(string eventName, SubscriptionInfo subscription) 
+        {
+            if (subscription != null) 
+            {
+                _subscriptions[eventName].Remove(subscription);
+                if (!_subscriptions[eventName].Any()) 
+                {
+                    _subscriptions.Remove(eventName);
+                    var eventType = _eventTypes.SingleOrDefault(e => e.Name == eventName);
+                    if (eventType != null)
+                        _eventTypes.Remove(eventType);
+
+                    RaiseOnEventRemoved(eventName);
+                }
+            }
+        }
+
+        private void RaiseOnEventRemoved(string eventName)
+        {
+            if (OnEventRemoved != null)
+                OnEventRemoved(this, eventName);
         }
     }
 }
