@@ -8,6 +8,7 @@ namespace Bus.EventManager
     {
         public bool IsDynamic { get; }
         public Type HandlerType{ get; }
+
         private SubscriptionInfo(bool isDynamic, Type handlerType)
         {
             IsDynamic = isDynamic;

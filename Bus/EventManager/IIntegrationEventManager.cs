@@ -24,8 +24,8 @@ namespace Bus.EventManager
         bool HasSubscriptionsForEvent(string eventName);
         Type GetEventTypeByName(string eventName);
         void Clear();
-        IEnumerable<SubscriptionInfo> GetHandlersForEvent<T>() where T : IntegrationEvent;
-        IEnumerable<SubscriptionInfo> GetHandlersForEvent(string eventName);
+        IEnumerable<SubscriptionInfo> GetSubscriptionsForEvent<T>() where T : IntegrationEvent;
+        IEnumerable<SubscriptionInfo> GetSubscriptionsForEvent(string eventName);
         string GetEventName<T>();
     }
 }

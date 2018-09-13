@@ -22,7 +22,7 @@ namespace Bus.EventBus.RabbitAggregate
 
         private readonly object _syncRoot = new object();
 
-        public RabbitMqPersistentConnection(IConnectionFactory connectionFactory, ILogger<RabbitMqPersistentConnection> logger, int retryCount = 10)
+        public RabbitMqPersistentConnection(IConnectionFactory connectionFactory, ILogger<RabbitMqPersistentConnection> logger, int retryCount = 5)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

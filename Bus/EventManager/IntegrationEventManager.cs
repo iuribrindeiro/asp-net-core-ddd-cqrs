@@ -21,11 +21,6 @@ namespace Bus.EventManager
         public bool IsEmpty => !_subscriptions.Keys.Any();
         public void Clear() => _subscriptions.Clear();
 
-        public void AddDynamicSubscription<TH>(string eventName) where TH : IDynamicIntegrationEventHandler
-        {
-            DoAddSubscription(typeof(TH), eventName, true);
-        }
-
         public void AddSubscription<T, TH>()
             where T : IntegrationEvent
             where TH : IIntegrationEventHandler<T>
@@ -33,6 +28,8 @@ namespace Bus.EventManager
             DoAddSubscription(typeof(TH), GetEventName<T>(), false);
             _eventTypes.Add(typeof(T));
         }
+
+        public void AddDynamicSubscription<TH>(string eventName) where TH : IDynamicIntegrationEventHandler => DoAddSubscription(typeof(TH), eventName, true);
 
         public void RemoveSubscription<T, TH>()
             where T : IntegrationEvent
@@ -49,30 +46,15 @@ namespace Bus.EventManager
             DoRemoveHandler(eventName, subscriptionToRemove);
         }
 
-        public bool HasSubscriptionsForEvent<T>() where T : IntegrationEvent
-        {
-            throw new NotImplementedException();
-        }
+        public bool HasSubscriptionsForEvent<T>() where T : IntegrationEvent => _subscriptions.ContainsKey(GetEventName<T>());
 
-        public bool HasSubscriptionsForEvent(string eventName)
-        {
-            throw new NotImplementedException();
-        }
+        public bool HasSubscriptionsForEvent(string eventName) => _subscriptions.ContainsKey(eventName);
 
-        public Type GetEventTypeByName(string eventName)
-        {
-            throw new NotImplementedException();
-        }
+        public Type GetEventTypeByName(string eventName) => _eventTypes.FirstOrDefault(e => e.Name == eventName);
 
-        public IEnumerable<SubscriptionInfo> GetHandlersForEvent<T>() where T : IntegrationEvent
-        {
-            throw new NotImplementedException();
-        }
+        public IEnumerable<SubscriptionInfo> GetSubscriptionsForEvent<T>() where T : IntegrationEvent => _subscriptions[GetEventName<T>()];
 
-        public IEnumerable<SubscriptionInfo> GetHandlersForEvent(string eventName)
-        {
-            throw new NotImplementedException();
-        }
+        public IEnumerable<SubscriptionInfo> GetSubscriptionsForEvent(string eventName) => _subscriptions[eventName];
 
         public string GetEventName<T>()
         {
@@ -120,7 +102,7 @@ namespace Bus.EventManager
             if (subscription != null) 
             {
                 _subscriptions[eventName].Remove(subscription);
-                if (!_subscriptions[eventName].Any()) 
+                if (!_subscriptions[eventName].Any())
                 {
                     _subscriptions.Remove(eventName);
                     var eventType = _eventTypes.SingleOrDefault(e => e.Name == eventName);
@@ -134,8 +116,7 @@ namespace Bus.EventManager
 
         private void RaiseOnEventRemoved(string eventName)
         {
-            if (OnEventRemoved != null)
-                OnEventRemoved(this, eventName);
+            OnEventRemoved?.Invoke(this, eventName);
         }
     }
 }
