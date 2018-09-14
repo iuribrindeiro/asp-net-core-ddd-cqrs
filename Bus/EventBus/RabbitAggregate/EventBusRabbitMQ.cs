@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Autofac;
@@ -13,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 
 namespace Bus.EventBus.RabbitAggregate
 {
@@ -24,18 +26,18 @@ namespace Bus.EventBus.RabbitAggregate
         private readonly IRabbitMQPersistentConnection _persistentConnection;
         private readonly ILogger<EventBusRabbitMQ> _logger;
         private readonly IIntegrationEventManager _eventManager;
-        private readonly ILifetimeScope _autofac;
+        private readonly ILifetimeScope _lifeScope;
         private readonly int _retryCount;
         private IModel _consumerChannel;
         private string _queueName;
 
         public EventBusRabbitMQ(IRabbitMQPersistentConnection persistentConnection, ILogger<EventBusRabbitMQ> logger,
-            IIntegrationEventManager subsManager, ILifetimeScope autofac, string queueName, int retryCount = 5)
+            IIntegrationEventManager subsManager, ILifetimeScope lifeScope, string queueName, int retryCount = 5)
         {
             _persistentConnection = persistentConnection ?? throw new ArgumentNullException(nameof(persistentConnection));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventManager = subsManager ?? throw new ArgumentNullException(nameof(subsManager));
-            _autofac = autofac ?? throw new ArgumentNullException(nameof(persistentConnection));
+            _lifeScope = lifeScope ?? throw new ArgumentNullException(nameof(persistentConnection));
             _queueName = queueName;
             _retryCount = retryCount;
             _consumerChannel = CreateConsumerChannel();
@@ -43,8 +45,43 @@ namespace Bus.EventBus.RabbitAggregate
 
         public void Publish(IntegrationEvent integrationEvent)
         {
-            throw new NotImplementedException();
-        }
+            if (!_persistentConnection.IsConnected)
+                _persistentConnection.TryConnect();
+            
+            var eventName = integrationEvent.GetType().Name;
+            var policy = Policy.Handle<BrokerUnreachableException>()
+                .Or<SocketException>()
+                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (ex, time) => { _logger.LogWarning($"Erro publishing event: {eventName} \n error: {ex.ToString()} \n event_id: {integrationEvent.Id}"); });
+
+            using (var channel = _persistentConnection.CreateModel())
+            {
+                bool eventSent = false;
+                channel.ExchangeDeclare(exchange: BROKER_NAME, type: "directy");
+
+                var message = JsonConvert.SerializeObject(integrationEvent);
+                var body = Encoding.UTF8.GetBytes(message);
+
+                policy.Execute(() =>
+                {
+                    var props = channel.CreateBasicProperties();
+                    props.DeliveryMode = 2;
+                    
+                    channel.BasicPublish(exchange: BROKER_NAME,
+                        routingKey: eventName,
+                        mandatory: true,
+                        basicProperties: props,
+                        body: body);
+                    eventSent = true;
+                });
+
+                if (!eventSent)
+                {
+                    
+                    throw new FailPublishingMessageException(eventName, body.ToString());   
+                }
+            }
+        } 
         public void Subscribe<TEvent, TEventHandler>() where TEvent : IntegrationEvent where TEventHandler : IIntegrationEventHandler<TEvent>
         {
             throw new NotImplementedException();
@@ -98,7 +135,7 @@ namespace Bus.EventBus.RabbitAggregate
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogCritical($"{ex.ToString()} \n DeliveryTag: {ea.DeliveryTag}");
+                        _logger.LogCritical($"Fail to process event: {ex.ToString()} \n DeliveryTag: {ea.DeliveryTag}");
                     }
                 });
 
@@ -127,7 +164,7 @@ namespace Bus.EventBus.RabbitAggregate
         {
             if (_eventManager.HasSubscriptionsForEvent(eventName))
             {
-                using (var scope = _autofac.BeginLifetimeScope(AUTOFAC_SCOPE_NAME))
+                using (var scope = _lifeScope.BeginLifetimeScope(AUTOFAC_SCOPE_NAME))
                 {
                     var subscriptions = _eventManager.GetSubscriptionsForEvent(eventName);
                     foreach (var subscription in subscriptions)
