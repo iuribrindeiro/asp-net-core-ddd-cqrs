@@ -7,7 +7,6 @@ using Bus.EventBus.Exceptions;
 using Bus.EventHandler;
 using Bus.EventManager;
 using Bus.Events;
-using Bus.EventStore;
 using Bus.Interfaces;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -28,19 +27,17 @@ namespace Bus.EventBus.RabbitAggregate
         private readonly ILogger<EventBusRabbitMQ> _logger;
         private readonly IIntegrationEventManager _eventManager;
         private readonly ILifetimeScope _lifeScope;
-        private readonly IIntegrationEventStoreRepository _integrationEventStoreRepository;
         private readonly int _retryCount;
         private IModel _consumerChannel;
         private string _queueName;
 
         public EventBusRabbitMQ(IRabbitMQPersistentConnection persistentConnection, ILogger<EventBusRabbitMQ> logger,
-            IIntegrationEventManager eventManager, ILifetimeScope lifeScope, IIntegrationEventStoreRepository integrationEventStoreRepository, string queueName, int retryCount = 5)
+            IIntegrationEventManager eventManager, ILifetimeScope lifeScope, string queueName, int retryCount = 5)
         {
             _persistentConnection = persistentConnection ?? throw new ArgumentNullException(nameof(persistentConnection));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventManager = eventManager ?? throw new ArgumentNullException(nameof(eventManager));
             _lifeScope = lifeScope ?? throw new ArgumentNullException(nameof(persistentConnection));
-            _integrationEventStoreRepository = integrationEventStoreRepository ?? throw new ArgumentNullException(nameof(integrationEventStoreRepository));
             _queueName = queueName;
             _retryCount = retryCount;
             _consumerChannel = CreateConsumerChannel();
@@ -66,7 +63,6 @@ namespace Bus.EventBus.RabbitAggregate
 
         public void Publish(IntegrationEvent integrationEvent)
         {
-            _integrationEventStoreRepository.SaveAsync(integrationEvent);
             SendToRabbit(integrationEvent);
         }
 
@@ -120,8 +116,17 @@ namespace Bus.EventBus.RabbitAggregate
             var eventName = @event.GetType().Name;
             var message = JsonConvert.SerializeObject(@event);
             var body = Encoding.UTF8.GetBytes(message);
+            var eventSent = false;
+            var policy = Policy.Handle<BrokerUnreachableException>()
+                .Or<SocketException>()
+                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (ex, time) =>
+                    {
+                        _logger.LogWarning(
+                            $"Fail to publish event: {eventName}, id: {@event.Id} \n error: {ex.ToString()}");
+                    });
 
-            try
+            policy.Execute(() =>
             {
                 using (var channel = _persistentConnection.CreateModel())
                 {
@@ -135,12 +140,16 @@ namespace Bus.EventBus.RabbitAggregate
                         mandatory: true,
                         basicProperties: props,
                         body: body);
+
+                    eventSent = true;
                 }
-            }
-            catch (Exception ex)
+            });
+
+            if (!eventSent)
             {
-                _logger.LogCritical(ex, ex.ToString());
-                throw;
+                var failToSentEventException = new FailToSendEventToRabbitException(eventName, message);
+                _logger.LogCritical(failToSentEventException.ToString());
+                throw failToSentEventException;
             }
         }
 
