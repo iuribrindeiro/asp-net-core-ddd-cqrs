@@ -7,6 +7,7 @@ using Bus.EventBus.Exceptions;
 using Bus.EventHandler;
 using Bus.EventManager;
 using Bus.Events;
+using Bus.EventStore;
 using Bus.Interfaces;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -27,82 +28,126 @@ namespace Bus.EventBus.RabbitAggregate
         private readonly ILogger<EventBusRabbitMQ> _logger;
         private readonly IIntegrationEventManager _eventManager;
         private readonly ILifetimeScope _lifeScope;
+        private readonly IIntegrationEventStoreRepository _integrationEventStoreRepository;
         private readonly int _retryCount;
         private IModel _consumerChannel;
         private string _queueName;
 
         public EventBusRabbitMQ(IRabbitMQPersistentConnection persistentConnection, ILogger<EventBusRabbitMQ> logger,
-            IIntegrationEventManager subsManager, ILifetimeScope lifeScope, string queueName, int retryCount = 5)
+            IIntegrationEventManager eventManager, ILifetimeScope lifeScope, IIntegrationEventStoreRepository integrationEventStoreRepository, string queueName, int retryCount = 5)
         {
             _persistentConnection = persistentConnection ?? throw new ArgumentNullException(nameof(persistentConnection));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _eventManager = subsManager ?? throw new ArgumentNullException(nameof(subsManager));
+            _eventManager = eventManager ?? throw new ArgumentNullException(nameof(eventManager));
             _lifeScope = lifeScope ?? throw new ArgumentNullException(nameof(persistentConnection));
+            _integrationEventStoreRepository = integrationEventStoreRepository ?? throw new ArgumentNullException(nameof(integrationEventStoreRepository));
             _queueName = queueName;
             _retryCount = retryCount;
             _consumerChannel = CreateConsumerChannel();
+            _eventManager.OnEventRemoved += EventManager_OnEventRemoved;
+        }
+
+        private void EventManager_OnEventRemoved(object sender, string eventName)
+        {
+            if (!_persistentConnection.IsConnected)
+                _persistentConnection.Connect();
+
+            using (var channel = _persistentConnection.CreateModel())
+            {
+                channel.QueueUnbind(queue: _queueName, exchange: BROKER_NAME, routingKey: eventName);
+
+                if (_eventManager.IsEmpty)
+                {
+                    _queueName = string.Empty;
+                    _consumerChannel.Close();
+                }
+            }
         }
 
         public void Publish(IntegrationEvent integrationEvent)
         {
+            _integrationEventStoreRepository.SaveAsync(integrationEvent);
+            SendToRabbit(integrationEvent);
+        }
+
+        public void Subscribe<TEvent, TEventHandler>() where TEvent : IntegrationEvent where TEventHandler : IIntegrationEventHandler<TEvent>
+        {
+            if (_eventManager.HasSubscriptionsForEvent<TEvent>())
+                return;
+
             if (!_persistentConnection.IsConnected)
-                _persistentConnection.TryConnect();
-            
-            var eventName = integrationEvent.GetType().Name;
-            var policy = Policy.Handle<BrokerUnreachableException>()
-                .Or<SocketException>()
-                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                    (ex, time) => { _logger.LogWarning($"Erro publishing event: {eventName} \n error: {ex.ToString()} \n event_id: {integrationEvent.Id}"); });
+                _persistentConnection.Connect();
 
             using (var channel = _persistentConnection.CreateModel())
             {
-                bool eventSent = false;
-                channel.ExchangeDeclare(exchange: BROKER_NAME, type: "directy");
+                var eventName = _eventManager.GetEventName<TEvent>();
 
-                var message = JsonConvert.SerializeObject(integrationEvent);
-                var body = Encoding.UTF8.GetBytes(message);
+                channel.QueueBind(queue: _queueName, exchange: BROKER_NAME, routingKey: eventName);
+                _eventManager.AddSubscription<TEvent, TEventHandler>();
+            }
+        }
 
-                policy.Execute(() =>
+        public void SubscribeDynamic<TEventHandler>(string eventName) where TEventHandler : IDynamicIntegrationEventHandler
+        {
+            if (_eventManager.HasSubscriptionsForEvent(eventName))
+                return;
+
+            if (!_persistentConnection.IsConnected)
+                _persistentConnection.Connect();
+
+            using (var channel = _persistentConnection.CreateModel())
+            {
+                channel.QueueBind(queue: _queueName, exchange: BROKER_NAME, routingKey: eventName);
+                _eventManager.AddDynamicSubscription<TEventHandler>(eventName);
+            }
+        }
+
+        public void Unsubscribe<TEvent, TEventHandler>() where TEvent : IntegrationEvent where TEventHandler : IIntegrationEventHandler<TEvent>
+        {
+            _eventManager.RemoveSubscription<TEvent, TEventHandler>();
+        }
+
+        public void Unsubscribe<TEventHandler>(string eventName) where TEventHandler : IDynamicIntegrationEventHandler
+        {
+            _eventManager.RemoveDynamicSubscription<TEventHandler>(eventName);
+        }
+
+        private void SendToRabbit(IntegrationEvent @event)
+        {
+            if (!_persistentConnection.IsConnected)
+                _persistentConnection.Connect();
+
+            var eventName = @event.GetType().Name;
+            var message = JsonConvert.SerializeObject(@event);
+            var body = Encoding.UTF8.GetBytes(message);
+
+            try
+            {
+                using (var channel = _persistentConnection.CreateModel())
                 {
+                    channel.ExchangeDeclare(exchange: BROKER_NAME, type: "direct");
+
                     var props = channel.CreateBasicProperties();
                     props.DeliveryMode = 2;
-                    
+
                     channel.BasicPublish(exchange: BROKER_NAME,
                         routingKey: eventName,
                         mandatory: true,
                         basicProperties: props,
                         body: body);
-                    eventSent = true;
-                });
-
-                if (!eventSent)
-                {
-                    
-                    throw new FailPublishingMessageException(eventName, body.ToString());   
                 }
             }
-        } 
-        public void Subscribe<TEvent, TEventHandler>() where TEvent : IntegrationEvent where TEventHandler : IIntegrationEventHandler<TEvent>
-        {
-            throw new NotImplementedException();
-        }
-        public void SubscribeDynamic<TEventHandler>(string eventName) where TEventHandler : IDynamicIntegrationEventHandler
-        {
-            throw new NotImplementedException();
-        }
-        public void Unsubscribe<TEvent, TEventHandler>() where TEvent : IntegrationEvent where TEventHandler : IIntegrationEventHandler<TEvent>
-        {
-            throw new NotImplementedException();
-        }
-        public void Unsubscribe<TEventHandler>(string eventName) where TEventHandler : IDynamicIntegrationEventHandler
-        {
-            throw new NotImplementedException();
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, ex.ToString());
+                throw;
+            }
         }
 
         private IModel CreateConsumerChannel()
         {
             if (!_persistentConnection.IsConnected)
-                _persistentConnection.TryConnect();
+                _persistentConnection.Connect();
 
             var channel = _persistentConnection.CreateModel();
 
@@ -118,7 +163,7 @@ namespace Bus.EventBus.RabbitAggregate
                 var policy = Policy.Handle<FailToProcessEventException>()
                     .WaitAndRetry(10, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                     {
-                        _logger.LogWarning($"{ex.ToString()} \n DeliveryTag: {ea.DeliveryTag}");
+                        _logger.LogWarning($"{ex} \n DeliveryTag: {ea.DeliveryTag}");
                     });
 
                 bool eventProcessed = false;
@@ -135,7 +180,7 @@ namespace Bus.EventBus.RabbitAggregate
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogCritical($"Fail to process event: {ex.ToString()} \n DeliveryTag: {ea.DeliveryTag}");
+                        _logger.LogCritical($"Fail to process event: {ex} \n DeliveryTag: {ea.DeliveryTag}");
                     }
                 });
 
@@ -188,9 +233,9 @@ namespace Bus.EventBus.RabbitAggregate
                         catch (Exception ex)
                         {
                             throw new FailToProcessEventException(
-                                eventName: eventName, 
-                                message: message, 
-                                innerException:ex
+                                eventName: eventName,
+                                message: message,
+                                innerException: ex
                             );
                         }
                     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using Bus.EventBus.Exceptions;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -31,7 +32,7 @@ namespace Bus.EventBus.RabbitAggregate
 
         public bool IsConnected => _connection != null && _connection.IsOpen && !_disposed;
 
-        public bool TryConnect()
+        public void Connect()
         {
             _logger.LogInformation("RabbitMQ Client is trying to connect");
 
@@ -57,14 +58,11 @@ namespace Bus.EventBus.RabbitAggregate
                     _connection.ConnectionBlocked += OnConnectionBlocked;
 
                     _logger.LogInformation($"RabbitMQ persistent connection acquired a connection {_connection.Endpoint.HostName} and is subscribed to failure events");
-
-                    return true;
                 }
                 else
                 {
                     _logger.LogCritical("FATAL ERROR: RabbitMQ connections could not be created and opened");
-
-                    return false;
+                    throw new CouldNotConnectToRabbitException();
                 }
             }
         }
@@ -101,7 +99,7 @@ namespace Bus.EventBus.RabbitAggregate
 
             _logger.LogWarning("A RabbitMQ connection is blocked. Trying to re-connect...");
 
-            TryConnect();
+            Connect();
         }
 
         private void OnCallbackException(object sender, CallbackExceptionEventArgs e)
@@ -110,7 +108,7 @@ namespace Bus.EventBus.RabbitAggregate
 
             _logger.LogWarning("A RabbitMQ connection throw exception. Trying to re-connect...");
 
-            TryConnect();
+            Connect();
         }
 
         private void OnConnectionShutdown(object sender, ShutdownEventArgs reason)
@@ -119,7 +117,7 @@ namespace Bus.EventBus.RabbitAggregate
 
             _logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
 
-            TryConnect();
+            Connect();
         }
     }
 }

@@ -9,7 +9,7 @@ namespace Bus.EventBus.RabbitAggregate
     {
         bool IsConnected { get; }
 
-        bool TryConnect();
+        void Connect();
 
         IModel CreateModel();
     }

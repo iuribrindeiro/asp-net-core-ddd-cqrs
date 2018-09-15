@@ -4209,28 +4209,30 @@
     ]
   },
   "packageFolders": {
-    "/home/bannet/.nuget/packages/": {},
-    "/usr/share/dotnet/sdk/NuGetFallbackFolder": {}
+    "C:\\Users\\iurib\\.nuget\\packages\\": {},
+    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/var/projetos/test-event-bus-core/Bus/Bus.csproj",
+      "projectUniqueName": "C:\\Projetos\\asp-net-core-ddd-cqrs\\Bus\\Bus.csproj",
       "projectName": "Bus",
-      "projectPath": "/var/projetos/test-event-bus-core/Bus/Bus.csproj",
-      "packagesPath": "/home/bannet/.nuget/packages/",
-      "outputPath": "/var/projetos/test-event-bus-core/Bus/obj/",
+      "projectPath": "C:\\Projetos\\asp-net-core-ddd-cqrs\\Bus\\Bus.csproj",
+      "packagesPath": "C:\\Users\\iurib\\.nuget\\packages\\",
+      "outputPath": "C:\\Projetos\\asp-net-core-ddd-cqrs\\Bus\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "/usr/share/dotnet/sdk/NuGetFallbackFolder"
+        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "/home/bannet/.config/NuGet/NuGet.Config"
+        "C:\\Users\\iurib\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "netstandard2.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
