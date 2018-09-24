@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using ProductsService.Presentation.Infra.ApplicationContext;
 using ProductsService.Presentation.IntegrationEvents;
 using ProductsService.Presentation.Models;
+using ProductsService.Presentation.Services;
 
 namespace ProductsService.Presentation.Controllers
 {
@@ -20,21 +21,28 @@ namespace ProductsService.Presentation.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly ProductsApplicationContext _applicationContext;
-        private readonly IEventBus _eventBus;
-        private readonly IMongoDatabase _mongoDatabase;
+        private readonly IIntegrationContextEventService _integrationContextEventService;
+        private readonly EventStoreApplicationContext _eventStoreApplicationContext;
 
-        public ProductsController(ProductsApplicationContext applicationContext, IEventBus eventBus, IMongoDatabase mongoDatabase)
+        public ProductsController(
+            ProductsApplicationContext applicationContext, 
+            IIntegrationContextEventService integrationContextEventService,
+            EventStoreApplicationContext eventStoreApplicationContext
+        )
         {
             _applicationContext = applicationContext;
-            _eventBus = eventBus;
-            _mongoDatabase = mongoDatabase;
+            _integrationContextEventService = integrationContextEventService;
+            _eventStoreApplicationContext = eventStoreApplicationContext;
         }
 
         [HttpPost]
         public ActionResult CreateProduct([FromBody] Product product)
         {
             _applicationContext.Products.Add(product);
-            _applicationContext.SaveChanges();
+            var productCreatedEvent = new ProductCreatedIntegrationEvent(product);
+            _eventStoreApplicationContext.IntegrationEvents.Add(productCreatedEvent);
+            _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
+            _integrationContextEventService.PublishEvent(productCreatedEvent);
 
             return CreatedAtAction(nameof(GetById), new { id = product.Id }, null);
         }
@@ -58,10 +66,13 @@ namespace ProductsService.Presentation.Controllers
             if (currentProduct == null)
                 return NotFound(new { Message = "The product does not exists" });
 
-            _applicationContext.Products.Update(product);
             var productUpdatedEvent = new ProductUpdatedIntegrationEvent(product);
-            _mongoDatabase.GetCollection<IntegrationEvent>(typeof(IntegrationEvent).Name).InsertOne(productUpdatedEvent);
-            _eventBus.Publish(productUpdatedEvent);
+            _applicationContext.Products.Update(product);
+            _eventStoreApplicationContext.IntegrationEvents.Add(productUpdatedEvent);
+            _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
+            _integrationContextEventService.PublishEvent(productUpdatedEvent);
+
+            return new OkObjectResult(product);
         }
     
     }

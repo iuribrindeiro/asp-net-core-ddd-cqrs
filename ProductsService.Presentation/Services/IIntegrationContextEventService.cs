@@ -6,8 +6,9 @@ using Bus.Events;
 
 namespace ProductsService.Presentation.Services
 {
-    public interface IIntegrationEventService
+    public interface IIntegrationContextEventService
     {
-        Task SaveProductsContextChangesAndSaveSendEvent(IntegrationEvent @event);
+        Task SaveApplicationContextAndEventStoreContextChangesAsync();
+        void PublishEvent(IntegrationEvent @event);
     }
 }
