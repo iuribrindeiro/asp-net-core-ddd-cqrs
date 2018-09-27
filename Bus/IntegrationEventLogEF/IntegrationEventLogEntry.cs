@@ -2,24 +2,22 @@
 using Bus.Events;
 using Newtonsoft.Json;
 
-namespace Bus.IntegrationEventLog
+namespace Bus.IntegrationEventLogEF.Models
 {
-    public abstract class AbstractIntegrationEventLogEntry
+    public class IntegrationEventLogEntry
     {
-        private AbstractIntegrationEventLogEntry() { }
+        private IntegrationEventLogEntry() { }
         
-        public AbstractIntegrationEventLogEntry(IntegrationEvent @event)
+        public IntegrationEventLogEntry(IntegrationEvent @event)
         {
             EventId = @event.Id;
             CreationTime = @event.CreatedAt;
             EventTypeName = @event.GetType().FullName;
-            Content = GetContentEvent(@event);
+            Content = @event;
             State = EventStateEnum.NotPublished;
             TimesSent = 0;
         }
 
-        protected abstract dynamic GetContentEvent(IntegrationEvent @event);
-        
         public Guid EventId { get; }
         public string EventTypeName { get; }
         public EventStateEnum State { get; private set; }
@@ -27,13 +25,13 @@ namespace Bus.IntegrationEventLog
         public DateTime CreationTime { get; }
         public dynamic Content { get; }
 
-        public AbstractIntegrationEventLogEntry MarkAsPublished()
+        public IntegrationEventLogEntry MarkAsPublished()
         {
             State = EventStateEnum.Published;
             return this;
         }
         
-        public AbstractIntegrationEventLogEntry MarkAsPublishedFailed()
+        public IntegrationEventLogEntry MarkAsPublishedFailed()
         {
             State = EventStateEnum.PublishedFailed;
             return this;

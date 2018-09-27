@@ -1,4 +1,4 @@
-﻿namespace Bus.IntegrationEventLog
+﻿namespace Bus.IntegrationEventLogEF
 {
     public enum EventStateEnum
     {
