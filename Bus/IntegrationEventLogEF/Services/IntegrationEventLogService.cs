@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Bus.Events;
+using Bus.IntegrationEventLogEF.Exceptions;
 using Bus.IntegrationEventLogEF.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,19 +22,24 @@ namespace Bus.IntegrationEventLogEF.Services
             _integrationEventLogContext = integrationEventLogContext ?? throw new ArgumentNullException(nameof(integrationEventLogContext));
         }
 
-        public Task SaveEventAsync(IntegrationEvent @event)
+        public void SaveEvent(IntegrationEvent @event)
         {
             var eventLogEntry = new IntegrationEventLogEntry(@event);
             _integrationEventLogContext.IntegrationEventsLogs.Add(eventLogEntry);
-            return _integrationEventLogContext.SaveChangesAsync();
         }
 
-
-        public Task MarkEventAsPublishedAsync(IntegrationEvent @event)
+        public async Task MarkEventAsPublishedAsync(IntegrationEvent @event)
         {
             var eventLogEntry = _integrationEventLogContext.IntegrationEventsLogs.Single(ie => ie.EventId == @event.Id);
-            eventLogEntry.MarkAsPublished();
-            return _integrationEventLogContext.SaveChangesAsync();
+            try
+            {
+                eventLogEntry.MarkAsPublished();
+                await _integrationEventLogContext.SaveChangesAsync();
+            }
+            catch (Exception exception)
+            {
+                throw new FailToMarkEventAsPublishedException(eventLogEntry, exception);
+            }
         }
     }
 }

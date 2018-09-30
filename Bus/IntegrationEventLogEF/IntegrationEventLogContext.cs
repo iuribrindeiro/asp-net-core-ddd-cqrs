@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Bus.Events;
 using Bus.IntegrationEventLogEF.Models;
+using Castle.Core.Interceptor;
+using Castle.DynamicProxy;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -12,13 +14,15 @@ namespace Bus.IntegrationEventLogEF
     public class IntegrationEventLogContext
     {
         private readonly IMongoDatabase _mongoDatabase;
+        private static readonly ProxyGenerator _generator = new ProxyGenerator(new PersistentProxyBuilder());
 
         public IList<IntegrationEventLogEntry> IntegrationEventsLogs { get; }
 
         public IntegrationEventLogContext(IMongoDatabase mongoDatabase)
         {
             _mongoDatabase = mongoDatabase;
-            IntegrationEventsLogs = new List<IntegrationEventLogEntry>();
+            IntegrationEventsLogs = (IList<IntegrationEventLogEntry>)_generator.CreateInterfaceProxyWithTarget<IList<IntegrationEventLogEntry>>(
+                _mongoDatabase.GetCollection<IntegrationEventLogEntry>(typeof(IntegrationEventLogEntry).Name), new IInterceptor[ new Intercept]);
         }
 
         public void SaveChanges()

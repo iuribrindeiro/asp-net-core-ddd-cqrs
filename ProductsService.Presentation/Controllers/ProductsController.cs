@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Bus.Events;
+using Bus.IntegrationEventLogEF.Services;
 using Bus.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,27 +23,27 @@ namespace ProductsService.Presentation.Controllers
     {
         private readonly ProductsApplicationContext _applicationContext;
         private readonly IIntegrationContextEventService _integrationContextEventService;
-        private readonly EventStoreApplicationContext _eventStoreApplicationContext;
+        private readonly IIntegrationEventLogService _integrationEventLogService;
 
         public ProductsController(
             ProductsApplicationContext applicationContext, 
             IIntegrationContextEventService integrationContextEventService,
-            EventStoreApplicationContext eventStoreApplicationContext
+            IIntegrationEventLogService integrationEventLogService
         )
         {
             _applicationContext = applicationContext;
             _integrationContextEventService = integrationContextEventService;
-            _eventStoreApplicationContext = eventStoreApplicationContext;
+            _integrationEventLogService = integrationEventLogService;
         }
 
         [HttpPost]
-        public ActionResult CreateProduct([FromBody] Product product)
+        public async Task<ActionResult> CreateProduct([FromBody] Product product)
         {
             _applicationContext.Products.Add(product);
             var productCreatedEvent = new ProductCreatedIntegrationEvent(product);
-            _eventStoreApplicationContext.IntegrationEvents.Add(productCreatedEvent);
-            _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
-            _integrationContextEventService.PublishEvent(productCreatedEvent);
+            _integrationEventLogService.SaveEvent(productCreatedEvent);
+            await _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
+            await _integrationContextEventService.PublishEvent(productCreatedEvent);
 
             return CreatedAtAction(nameof(GetById), new { id = product.Id }, null);
         }
@@ -68,7 +69,7 @@ namespace ProductsService.Presentation.Controllers
 
             var productUpdatedEvent = new ProductUpdatedIntegrationEvent(product);
             _applicationContext.Products.Update(product);
-            _eventStoreApplicationContext.IntegrationEvents.Add(productUpdatedEvent);
+            _integrationEventLogService.SaveEvent(productUpdatedEvent);
             _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
             _integrationContextEventService.PublishEvent(productUpdatedEvent);
 

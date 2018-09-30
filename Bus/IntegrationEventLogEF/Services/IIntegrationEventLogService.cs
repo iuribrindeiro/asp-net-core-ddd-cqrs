@@ -5,7 +5,7 @@ namespace Bus.IntegrationEventLogEF.Services
 {
     public interface IIntegrationEventLogService
     {
-        Task SaveEventAsync(IntegrationEvent @event);
+        void SaveEvent(IntegrationEvent @event);
         Task MarkEventAsPublishedAsync(IntegrationEvent @event);
     }
 }

@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Bus.Events;
+using Bus.IntegrationEventLogEF;
+using Bus.IntegrationEventLogEF.Exceptions;
+using Bus.IntegrationEventLogEF.Services;
+using Bus.IntegrationEventLogEF.Utils;
 using Bus.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
@@ -11,36 +15,48 @@ namespace ProductsService.Presentation.Services
     public class IntegrationContextEventService : IIntegrationContextEventService
     {
         private readonly IEventBus _eventBus;
-        private readonly DbContext _dbContext;
-        private readonly IUnitOfWork _eventStoreUnitOfWork;
+        private readonly IntegrationEventLogContext _integrationEventLogContext;
+        private readonly ProductsApplicationContext _dbContext;
+        private readonly IIntegrationEventLogService _integrationEventLogService;
 
         public IntegrationContextEventService(
-            DbContext dbContext, 
-            IUnitOfWork eventStoreUnitOfWork, 
-            IEventBus eventBus)
-        {
+            ProductsApplicationContext dbContext,
+            IIntegrationEventLogService integrationEventLogService,
+            IEventBus eventBus,
+            IntegrationEventLogContext integrationEventLogContext
+        ) {
             _dbContext = dbContext;
-            _eventStoreUnitOfWork = eventStoreUnitOfWork;
+            _integrationEventLogService = integrationEventLogService;
             _eventBus = eventBus;
+            _integrationEventLogContext = integrationEventLogContext;
         }
 
         public async Task SaveApplicationContextAndEventStoreContextChangesAsync()
         {
-            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            var resilientTransaction = ResilientTransaction.Create(_dbContext);
             
-            await strategy.ExecuteAsync(async () =>
+            await resilientTransaction.ExecuteAsync(async () =>
             {
-                using (var transaction = _dbContext.Database.BeginTransaction())
-                {
-                    await _dbContext.SaveChangesAsync();
-                    await _eventStoreUnitOfWork.SaveChangesAsync();
-                }
+                await _dbContext.SaveChangesAsync();
+                await _integrationEventLogContext.SaveChangesAsync();
             });
         }
 
-        public void PublishEvent(IntegrationEvent @event)
+        public async Task PublishEvent(IntegrationEvent @event)
         {
-            _eventBus.Publish(@event);
+            try
+            {
+                _eventBus.Publish(@event);
+                await _integrationEventLogService.MarkEventAsPublishedAsync(@event);
+            }
+            catch (FailToMarkEventAsPublishedException exception)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                await _integrationEventLogService.MarkEventAsPublishedAsync()
+            }
         }
     }
 }

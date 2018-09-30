@@ -15,6 +15,35 @@
           "lib/netstandard1.1/Autofac.dll": {}
         }
       },
+      "Castle.Core/1.2.0": {
+        "type": "package",
+        "dependencies": {
+          "NLog": "1.0.0.505",
+          "log4net": "1.2.10"
+        },
+        "compile": {
+          "lib/Castle.Core.dll": {},
+          "lib/Castle.Services.Logging.NLogIntegration.dll": {},
+          "lib/Castle.Services.Logging.log4netIntegration.dll": {}
+        },
+        "runtime": {
+          "lib/Castle.Core.dll": {},
+          "lib/Castle.Services.Logging.NLogIntegration.dll": {},
+          "lib/Castle.Services.Logging.log4netIntegration.dll": {}
+        }
+      },
+      "Castle.DynamicProxy/2.2.0": {
+        "type": "package",
+        "dependencies": {
+          "Castle.Core": "[1.2.0]"
+        },
+        "compile": {
+          "lib/Castle.DynamicProxy2.dll": {}
+        },
+        "runtime": {
+          "lib/Castle.DynamicProxy2.dll": {}
+        }
+      },
       "DnsClient/1.0.7": {
         "type": "package",
         "dependencies": {
@@ -40,6 +69,15 @@
         },
         "runtime": {
           "lib/netstandard1.3/DnsClient.dll": {}
+        }
+      },
+      "log4net/1.2.10": {
+        "type": "package",
+        "compile": {
+          "lib/2.0/log4net.dll": {}
+        },
+        "runtime": {
+          "lib/2.0/log4net.dll": {}
         }
       },
       "Microsoft.Extensions.Configuration/2.1.1": {
@@ -265,6 +303,15 @@
         },
         "runtime": {
           "lib/netstandard2.0/Newtonsoft.Json.dll": {}
+        }
+      },
+      "NLog/1.0.0.505": {
+        "type": "package",
+        "compile": {
+          "lib/NLog.dll": {}
+        },
+        "runtime": {
+          "lib/NLog.dll": {}
         }
       },
       "Polly/6.1.0": {
@@ -1722,6 +1769,28 @@
         "lib/netstandard1.1/Autofac.xml"
       ]
     },
+    "Castle.Core/1.2.0": {
+      "sha512": "Nzf3go+P9ZReJOWX1FVAnd2eBcF7u1sjIll2KC80B2kTmJTJY/cqvJG6kK/x/dXrPh4zmdPatnnVWZ/nrKzEaw==",
+      "type": "package",
+      "path": "castle.core/1.2.0",
+      "files": [
+        "castle.core.1.2.0.nupkg.sha512",
+        "castle.core.nuspec",
+        "lib/Castle.Core.dll",
+        "lib/Castle.Services.Logging.NLogIntegration.dll",
+        "lib/Castle.Services.Logging.log4netIntegration.dll"
+      ]
+    },
+    "Castle.DynamicProxy/2.2.0": {
+      "sha512": "3eiJiPYF7wK0CmHn47d56kbJLfvTGfLZ8D5G1dLLRbCo8h28gn6qkKTxFk/65FDz9zeUqWWmpZ3SAwhbpOr1sw==",
+      "type": "package",
+      "path": "castle.dynamicproxy/2.2.0",
+      "files": [
+        "castle.dynamicproxy.2.2.0.nupkg.sha512",
+        "castle.dynamicproxy.nuspec",
+        "lib/Castle.DynamicProxy2.dll"
+      ]
+    },
     "DnsClient/1.0.7": {
       "sha512": "f3k5ufhUSL658fy/ac1mReqRIr0jGMyOJFvBqJ+7cASq01NIysYbrrRDjboYKAGrd0Y2mc1A749uQvT8vAA91A==",
       "type": "package",
@@ -1733,6 +1802,21 @@
         "lib/net45/DnsClient.xml",
         "lib/netstandard1.3/DnsClient.dll",
         "lib/netstandard1.3/DnsClient.xml"
+      ]
+    },
+    "log4net/1.2.10": {
+      "sha512": "yP7PCpxPt5cB9yiRAvCwyW5YRqXV4jM4tpVLnm/ls2nJt786l5srbSdm5xIEVMXz/kOYqLKP177Gyqey1wdP/A==",
+      "type": "package",
+      "path": "log4net/1.2.10",
+      "files": [
+        "lib/1.0/log4net.dll",
+        "lib/1.0/log4net.xml",
+        "lib/1.1/log4net.dll",
+        "lib/1.1/log4net.xml",
+        "lib/2.0/log4net.dll",
+        "lib/2.0/log4net.xml",
+        "log4net.1.2.10.nupkg.sha512",
+        "log4net.nuspec"
       ]
     },
     "Microsoft.Extensions.Configuration/2.1.1": {
@@ -2116,6 +2200,16 @@
         "lib/portable-net45+win8+wp8+wpa81/Newtonsoft.Json.xml",
         "newtonsoft.json.11.0.2.nupkg.sha512",
         "newtonsoft.json.nuspec"
+      ]
+    },
+    "NLog/1.0.0.505": {
+      "sha512": "7dnEHYmlfAho9gbM0KvjcfSej419aevcYyDNFcQf6ALcj+ZEkns64ZAN1KOOQK0lL20WHWXbKML4aA088BENTg==",
+      "type": "package",
+      "path": "nlog/1.0.0.505",
+      "files": [
+        "lib/NLog.dll",
+        "nlog.1.0.0.505.nupkg.sha512",
+        "nlog.nuspec"
       ]
     },
     "Polly/6.1.0": {
@@ -5663,6 +5757,7 @@
   "projectFileDependencyGroups": {
     ".NETStandard,Version=v2.0": [
       "Autofac >= 4.8.1",
+      "Castle.DynamicProxy >= 2.2.0",
       "Microsoft.Extensions.Logging >= 2.1.1",
       "MongoDB.Driver >= 2.7.0",
       "NETStandard.Library >= 2.0.3",
@@ -5716,6 +5811,10 @@
             "target": "Package",
             "version": "[4.8.1, )"
           },
+          "Castle.DynamicProxy": {
+            "target": "Package",
+            "version": "[2.2.0, )"
+          },
           "Microsoft.Extensions.Logging": {
             "target": "Package",
             "version": "[2.1.1, )"
@@ -5750,5 +5849,47 @@
         "warn": true
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'Castle.Core 1.2.0' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETStandard,Version=v2.0'. This package may not be fully compatible with your project.",
+      "libraryId": "Castle.Core",
+      "targetGraphs": [
+        ".NETStandard,Version=v2.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'Castle.DynamicProxy 2.2.0' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETStandard,Version=v2.0'. This package may not be fully compatible with your project.",
+      "libraryId": "Castle.DynamicProxy",
+      "targetGraphs": [
+        ".NETStandard,Version=v2.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'log4net 1.2.10' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETStandard,Version=v2.0'. This package may not be fully compatible with your project.",
+      "libraryId": "log4net",
+      "targetGraphs": [
+        ".NETStandard,Version=v2.0"
+      ]
+    },
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'NLog 1.0.0.505' was restored using '.NETFramework,Version=v4.6.1' instead of the project target framework '.NETStandard,Version=v2.0'. This package may not be fully compatible with your project.",
+      "libraryId": "NLog",
+      "targetGraphs": [
+        ".NETStandard,Version=v2.0"
+      ]
+    }
+  ]
 }
