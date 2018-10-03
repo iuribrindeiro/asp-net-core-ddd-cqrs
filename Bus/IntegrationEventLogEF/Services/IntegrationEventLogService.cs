@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Bus.Events;
 using Bus.IntegrationEventLogEF.Exceptions;
 using Bus.IntegrationEventLogEF.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace Bus.IntegrationEventLogEF.Services
 {
@@ -24,22 +23,52 @@ namespace Bus.IntegrationEventLogEF.Services
 
         public void SaveEvent(IntegrationEvent @event)
         {
-            var eventLogEntry = new IntegrationEventLogEntry(@event);
+            var eventLogEntry = new IntegrationEventLog(@event);
             _integrationEventLogContext.IntegrationEventsLogs.Add(eventLogEntry);
         }
 
         public async Task MarkEventAsPublishedAsync(IntegrationEvent @event)
         {
-            var eventLogEntry = _integrationEventLogContext.IntegrationEventsLogs.Single(ie => ie.EventId == @event.Id);
+            var eventLog = GetValidEventById(@event.Id);
+            
             try
             {
-                eventLogEntry.MarkAsPublished();
+                eventLog.MarkAsPublished();
                 await _integrationEventLogContext.SaveChangesAsync();
             }
             catch (Exception exception)
             {
-                throw new FailToMarkEventAsPublishedException(eventLogEntry, exception);
+                throw new FailToChangeEventStateException(eventLog, exception);
             }
+        }
+
+        public async Task MarkEventAsFailToPublishAsync(IntegrationEvent @event)
+        {
+            var eventLog = GetValidEventById(@event.Id);
+            
+            try
+            {
+                eventLog.MarkAsPublishedFailed();
+                await _integrationEventLogContext.SaveChangesAsync();
+            }
+            catch (Exception exception)
+            {
+                throw new FailToChangeEventStateException(eventLog, exception);
+            }
+        }
+
+        public IntegrationEventLog Find(Guid id)
+        {
+            return _integrationEventLogContext.IntegrationEventsLogs.Find(id);
+        }
+
+        private IntegrationEventLog GetValidEventById(Guid eventId)
+        {
+            var eventLog = Find(eventId); 
+            if (eventLog == null)
+                throw new IntegrationEventWithIdDoesNotExistsException(eventId);
+            
+            return eventLog;
         }
     }
 }

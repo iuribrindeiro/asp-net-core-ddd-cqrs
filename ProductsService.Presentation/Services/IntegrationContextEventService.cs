@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Bus.EventBus.Exceptions;
 using Bus.Events;
 using Bus.IntegrationEventLogEF;
 using Bus.IntegrationEventLogEF.Exceptions;
@@ -44,18 +45,17 @@ namespace ProductsService.Presentation.Services
 
         public async Task PublishEvent(IntegrationEvent @event)
         {
+            if (_integrationEventLogService.Find(@event.Id) == null)
+                throw new IntegrationEventWithIdDoesNotExistsException(@event.Id);
+
             try
             {
                 _eventBus.Publish(@event);
                 await _integrationEventLogService.MarkEventAsPublishedAsync(@event);
             }
-            catch (FailToMarkEventAsPublishedException exception)
+            catch (FailToSendEventToRabbitException exception)
             {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                await _integrationEventLogService.MarkEventAsPublishedAsync()
+                await _integrationEventLogService.MarkEventAsFailToPublishAsync(@event);
             }
         }
     }

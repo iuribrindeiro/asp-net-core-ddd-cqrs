@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 
 namespace Bus.IntegrationEventLogEF.Models
 {
-    public class IntegrationEventLogEntry
+    public class IntegrationEventLog
     {
-        private IntegrationEventLogEntry() { }
+        private IntegrationEventLog() { }
         
-        public IntegrationEventLogEntry(IntegrationEvent @event)
+        public IntegrationEventLog(IntegrationEvent @event)
         {
             EventId = @event.Id;
             CreationTime = @event.CreatedAt;
@@ -25,13 +25,13 @@ namespace Bus.IntegrationEventLogEF.Models
         public DateTime CreationTime { get; }
         public dynamic Content { get; }
 
-        public IntegrationEventLogEntry MarkAsPublished()
+        public IntegrationEventLog MarkAsPublished()
         {
             State = EventStateEnum.Published;
             return this;
         }
         
-        public IntegrationEventLogEntry MarkAsPublishedFailed()
+        public IntegrationEventLog MarkAsPublishedFailed()
         {
             State = EventStateEnum.PublishedFailed;
             return this;

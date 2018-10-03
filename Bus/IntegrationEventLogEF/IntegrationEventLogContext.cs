@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Bus.Events;
 using Bus.IntegrationEventLogEF.Models;
+using Bus.IntegrationEventLogEF.Storages;
+using Bus.IntegrationEventLogEF.Storages.Proxy;
 using Castle.Core.Interceptor;
 using Castle.DynamicProxy;
 using MongoDB.Bson;
@@ -14,15 +16,18 @@ namespace Bus.IntegrationEventLogEF
     public class IntegrationEventLogContext
     {
         private readonly IMongoDatabase _mongoDatabase;
-        private static readonly ProxyGenerator _generator = new ProxyGenerator(new PersistentProxyBuilder());
 
-        public IList<IntegrationEventLogEntry> IntegrationEventsLogs { get; }
+        private readonly InMemoryIntegrationEventLogStorage _inMemoryIntegrationEventsLogs;
+        
+        public IIntegrationEventLogStorage IntegrationEventsLogs { get; }
 
-        public IntegrationEventLogContext(IMongoDatabase mongoDatabase)
+        public IntegrationEventLogContext(IMongoDatabase mongoDatabase,
+            IIntegrationEventLogStorageFactory integrationEventLogStorage,
+            InMemoryIntegrationEventLogStorage inMemoryIntegrationEventLogStorage)
         {
             _mongoDatabase = mongoDatabase;
-            IntegrationEventsLogs = (IList<IntegrationEventLogEntry>)_generator.CreateInterfaceProxyWithTarget<IList<IntegrationEventLogEntry>>(
-                _mongoDatabase.GetCollection<IntegrationEventLogEntry>(typeof(IntegrationEventLogEntry).Name), new IInterceptor[ new Intercept]);
+            IntegrationEventsLogs = integrationEventLogStorage.GetStorage();
+            _inMemoryIntegrationEventsLogs = inMemoryIntegrationEventLogStorage;
         }
 
         public void SaveChanges()
@@ -30,9 +35,9 @@ namespace Bus.IntegrationEventLogEF
             var session = _mongoDatabase.Client.StartSession();
             session.StartTransaction();
             var collection =
-                _mongoDatabase.GetCollection<IntegrationEventLogEntry>(typeof(IntegrationEventLogEntry).Name);
-
-            foreach (var integrationEventLogEntry in IntegrationEventsLogs)
+                _mongoDatabase.GetCollection<IntegrationEventLog>(typeof(IntegrationEventLog).Name);
+            
+            foreach (var integrationEventLogEntry in _inMemoryIntegrationEventsLogs.IntegrationEventLogs)
             {
                 collection.ReplaceOne(
                     session,
@@ -49,9 +54,9 @@ namespace Bus.IntegrationEventLogEF
             var session = await _mongoDatabase.Client.StartSessionAsync();
             session.StartTransaction();
             var collection =
-                _mongoDatabase.GetCollection<IntegrationEventLogEntry>(typeof(IntegrationEventLogEntry).Name);
+                _mongoDatabase.GetCollection<IntegrationEventLog>(typeof(IntegrationEventLog).Name);
 
-            foreach (var integrationEventLogEntry in IntegrationEventsLogs)
+            foreach (var integrationEventLogEntry in _inMemoryIntegrationEventsLogs.IntegrationEventLogs)
             {
                 await collection.ReplaceOneAsync(
                     session,
