@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ProductsService.Presentation.Models;
-using ProductsService.Presentation.Models.ValueObjects;
 
-namespace ProductsService.Presentation.Infra.MappingEntity
+namespace ProductsService.Presentation.Infra.Data.MappingEntity
 {
     public class ProductMapping : IEntityTypeConfiguration<Product>
     {
@@ -23,6 +18,7 @@ namespace ProductsService.Presentation.Infra.MappingEntity
             });
             builder.Ignore(p => p.PriceWithDiscount);
             builder.Ignore(p => p.HasDiscount);
+            builder.Property(p => p.InStock);
         }
     }
 }

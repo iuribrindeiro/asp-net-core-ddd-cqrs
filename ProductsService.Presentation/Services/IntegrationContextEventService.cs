@@ -9,7 +9,7 @@ using Bus.IntegrationEventLogEF.Utils;
 using Bus.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
-using ProductsService.Presentation.Infra.ApplicationContext;
+using ProductsService.Presentation.Infra.Data.ApplicationContext;
 
 namespace ProductsService.Presentation.Services
 {
@@ -32,7 +32,7 @@ namespace ProductsService.Presentation.Services
             _integrationEventLogContext = integrationEventLogContext;
         }
 
-        public async Task SaveApplicationContextAndEventStoreContextChangesAsync()
+        public async Task SaveApplicationContextAndEventLogsContextChangesAsync()
         {
             var resilientTransaction = ResilientTransaction.Create(_dbContext);
             
@@ -53,9 +53,10 @@ namespace ProductsService.Presentation.Services
                 _eventBus.Publish(@event);
                 await _integrationEventLogService.MarkEventAsPublishedAsync(@event);
             }
-            catch (FailToSendEventToRabbitException exception)
+            catch (FailToSendEventToRabbitException)
             {
                 await _integrationEventLogService.MarkEventAsFailToPublishAsync(@event);
+                throw;
             }
         }
     }

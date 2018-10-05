@@ -1,7 +1,7 @@
 ﻿using Bus.Events;
 using ProductsService.Presentation.Models;
 
-namespace ProductsService.Presentation.IntegrationEvents
+namespace ProductsService.Presentation.Infra.IntegrationEvents
 {
     public class ProductCreatedIntegrationEvent : IntegrationEvent
     {

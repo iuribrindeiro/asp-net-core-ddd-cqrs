@@ -1,17 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Bus.Events;
 using Bus.IntegrationEventLogEF.Services;
-using Bus.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
-using Newtonsoft.Json;
-using ProductsService.Presentation.Infra.ApplicationContext;
-using ProductsService.Presentation.IntegrationEvents;
+using ProductsService.Presentation.Infra.Data.ApplicationContext;
+using ProductsService.Presentation.Infra.IntegrationEvents;
 using ProductsService.Presentation.Models;
 using ProductsService.Presentation.Services;
 
@@ -25,11 +18,9 @@ namespace ProductsService.Presentation.Controllers
         private readonly IIntegrationContextEventService _integrationContextEventService;
         private readonly IIntegrationEventLogService _integrationEventLogService;
 
-        public ProductsController(
-            ProductsApplicationContext applicationContext, 
+        public ProductsController(ProductsApplicationContext applicationContext,
             IIntegrationContextEventService integrationContextEventService,
-            IIntegrationEventLogService integrationEventLogService
-        )
+            IIntegrationEventLogService integrationEventLogService)
         {
             _applicationContext = applicationContext;
             _integrationContextEventService = integrationContextEventService;
@@ -41,20 +32,19 @@ namespace ProductsService.Presentation.Controllers
         {
             _applicationContext.Products.Add(product);
             var productCreatedEvent = new ProductCreatedIntegrationEvent(product);
-            _integrationEventLogService.SaveEvent(productCreatedEvent);
-            await _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
+            _integrationEventLogService.Save(productCreatedEvent);
+            await _integrationContextEventService.SaveApplicationContextAndEventLogsContextChangesAsync();
             await _integrationContextEventService.PublishEvent(productCreatedEvent);
 
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, null);
+            return CreatedAtAction(nameof(GetById), new {id = product.Id}, null);
         }
 
-        [HttpGet("{guid:id}")]
-        public ActionResult GetById([FromRoute]Guid id)
+        [HttpGet("{id:guid}")]
+        public ActionResult GetById([FromRoute] Guid id)
         {
             var product = _applicationContext.Products.Find(id);
 
-            if (product == null)
-                return NotFound(new { Message = "The product does not exists" });
+            if (product == null) return NotFound(new {Message = "The product does not exists"});
 
             return new ObjectResult(product);
         }
@@ -64,17 +54,15 @@ namespace ProductsService.Presentation.Controllers
         {
             var currentProduct = _applicationContext.Products.SingleOrDefault(p => p.Id == product.Id);
 
-            if (currentProduct == null)
-                return NotFound(new { Message = "The product does not exists" });
+            if (currentProduct == null) return NotFound(new {Message = "The product does not exists"});
 
             var productUpdatedEvent = new ProductUpdatedIntegrationEvent(product);
             _applicationContext.Products.Update(product);
-            _integrationEventLogService.SaveEvent(productUpdatedEvent);
-            _integrationContextEventService.SaveApplicationContextAndEventStoreContextChangesAsync();
+            _integrationEventLogService.Save(productUpdatedEvent);
+            _integrationContextEventService.SaveApplicationContextAndEventLogsContextChangesAsync();
             _integrationContextEventService.PublishEvent(productUpdatedEvent);
 
             return new OkObjectResult(product);
         }
-    
     }
 }

@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using ProductsService.Presentation.Infra.MappingEntity;
+﻿using Microsoft.EntityFrameworkCore;
+using ProductsService.Presentation.Infra.Data.MappingEntity;
 using ProductsService.Presentation.Models;
 
-namespace ProductsService.Presentation.Infra.ApplicationContext
+namespace ProductsService.Presentation.Infra.Data.ApplicationContext
 {
     public class ProductsApplicationContext : DbContext
     {

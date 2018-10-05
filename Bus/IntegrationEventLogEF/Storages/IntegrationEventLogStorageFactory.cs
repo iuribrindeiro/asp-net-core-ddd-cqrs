@@ -9,7 +9,8 @@ namespace Bus.IntegrationEventLogEF.Storages
         private readonly IIntegrationEventLogStorage _mongoIntegrationEventLogStorage;
         private readonly ProxyGenerator _proxyGenerator;
 
-        public IntegrationEventLogStorageFactory(IIntegrationEventLogStorage inMemoryIntegrationEventLogStorage, IIntegrationEventLogStorage mongoIntegrationEventLogStorage)
+        public IntegrationEventLogStorageFactory(IIntegrationEventLogStorage inMemoryIntegrationEventLogStorage,
+            IIntegrationEventLogStorage mongoIntegrationEventLogStorage)
         {
             _inMemoryIntegrationEventLogStorage = inMemoryIntegrationEventLogStorage;
             _mongoIntegrationEventLogStorage = mongoIntegrationEventLogStorage;
@@ -20,7 +21,7 @@ namespace Bus.IntegrationEventLogEF.Storages
         {
             var interceptor = new IntegrationEventLogInterceptor(_inMemoryIntegrationEventLogStorage,
                 _mongoIntegrationEventLogStorage);
-            return _proxyGenerator.CreateInterfaceProxyWithoutTarget<IIntegrationEventLogStorage>(interceptor);
+            return _proxyGenerator.CreateInterfaceProxyWithTarget(_inMemoryIntegrationEventLogStorage, interceptor);
         }
     }
 }

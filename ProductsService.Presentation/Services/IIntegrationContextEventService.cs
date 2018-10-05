@@ -8,7 +8,7 @@ namespace ProductsService.Presentation.Services
 {
     public interface IIntegrationContextEventService
     {
-        Task SaveApplicationContextAndEventStoreContextChangesAsync();
+        Task SaveApplicationContextAndEventLogsContextChangesAsync();
         Task PublishEvent(IntegrationEvent @event);
     }
 }

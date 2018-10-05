@@ -1,5 +1,7 @@
-﻿using Bus.IntegrationEventLogEF.Models;
-using Castle.Core.Interceptor;
+﻿using System;
+using System.Linq;
+using Bus.IntegrationEventLogEF.Models;
+using Castle.DynamicProxy;
 
 namespace Bus.IntegrationEventLogEF.Storages.Proxy
 {
@@ -19,28 +21,14 @@ namespace Bus.IntegrationEventLogEF.Storages.Proxy
 
         public void Intercept(IInvocation invocation)
         {
-            ChangeInterceptorTargetToInMemory(invocation);
-            
             if (invocation.Method.Name == "Find")
             {
                 var result = (IntegrationEventLog)invocation.ReturnValue;
                 if (result == null)
-                    ChangeInterceptorTargetToMongo(invocation);
+                    invocation.ReturnValue = _mongoEventLogStarage.Find((Guid)invocation.Arguments.First());
             }
             
             invocation.Proceed();
-        }
-
-        private void ChangeInterceptorTargetToInMemory(IInvocation invocation)
-        {
-            var changeProxyTarget = invocation as IChangeProxyTarget;
-            changeProxyTarget.ChangeInvocationTarget(_inMemoryEventLogStorage); 
-        }
-
-        private void ChangeInterceptorTargetToMongo(IInvocation invocation)
-        {
-            var changeProxyTarget = invocation as IChangeProxyTarget;
-            changeProxyTarget.ChangeInvocationTarget(_mongoEventLogStarage);
         }
     }
 }

@@ -15,6 +15,8 @@ namespace ProductsService.Presentation.Models
         
         public Discount Discount { get; set; }
 
+        public int InStock { get; set; }
+
         [Required]
         public decimal Price { get; set; }
 
