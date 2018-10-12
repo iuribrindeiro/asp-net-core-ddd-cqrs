@@ -35,7 +35,7 @@ namespace ProductsService.Presentation
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.AddDbContext<ProductsApplicationContext>(options =>
                 {
-                    options.UseSqlServer(Configuration.GetConnectionString("Products.SQLConnectionString"), sqlServerOptionsAction: sqlOptions =>
+                    options.UseSqlServer(Configuration.GetValue<string>("PRODUCTS_SQL_CONNECTIONSTRING"), sqlServerOptionsAction: sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
                         sqlOptions.EnableRetryOnFailure(maxRetryCount: 10, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
@@ -48,9 +48,7 @@ namespace ProductsService.Presentation
                 var logger = sp.GetRequiredService<ILogger<RabbitMqPersistentConnection>>();
                 var connectionFactory = new ConnectionFactory()
                 {
-                    HostName = Configuration.GetValue<string>("Products.RabbitMQHost"),
-                    UserName = Configuration.GetValue<string>("Products.RabbitMQUserName"),
-                    Password = Configuration.GetValue<string>("Products.RabbitMQPassword")
+                    HostName = Configuration.GetValue<string>("PRODUCTS_RABBITMQ_HOST")
                 };
 
                 return new RabbitMqPersistentConnection(connectionFactory, logger, retryCount: 5);
@@ -61,7 +59,7 @@ namespace ProductsService.Presentation
                 var logger = sp.GetRequiredService<ILogger<EventBusRabbitMQ>>();
                 var eventManager = sp.GetRequiredService<IIntegrationEventManager>();
                 var lifeScope = sp.GetRequiredService<ILifetimeScope>();
-                var queueName = Configuration.GetValue<string>("Products.RabbitMQQueueName");
+                var queueName = Configuration.GetValue<string>("PRODUCTS_RABBITMQ_QUEUENAME");
                 
                 return new EventBusRabbitMQ(persistentConnection, logger, eventManager, lifeScope, queueName, retryCount: 5);
             });

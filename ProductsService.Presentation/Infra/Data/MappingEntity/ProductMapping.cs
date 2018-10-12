@@ -11,13 +11,6 @@ namespace ProductsService.Presentation.Infra.Data.MappingEntity
             builder.HasKey(p => p.Id);
             builder.Property(p => p.Description);
             builder.Property(p => p.Price);
-            builder.OwnsOne(p => p.Discount, d =>
-            {
-                d.Property(dic => dic.Amount).IsRequired(false);
-                d.Property(dic => dic.IsPercentage).IsRequired(false);
-            });
-            builder.Ignore(p => p.PriceWithDiscount);
-            builder.Ignore(p => p.HasDiscount);
             builder.Property(p => p.InStock);
         }
     }

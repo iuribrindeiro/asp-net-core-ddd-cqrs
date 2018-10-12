@@ -19,6 +19,12 @@ namespace ProductsService.Presentation
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((builderContext, config) =>
+                {
+                    var configurationBuilder = new ConfigurationBuilder();
+                    configurationBuilder.AddEnvironmentVariables();
+                    config.AddConfiguration(configurationBuilder.Build());
+                })
                 .UseStartup<Startup>();
     }
 }

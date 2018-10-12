@@ -170,7 +170,7 @@ namespace Bus.EventBus.RabbitAggregate
                 var message = Encoding.UTF8.GetString(ea.Body);
 
                 var policy = Policy.Handle<FailToProcessEventException>()
-                    .WaitAndRetry(10, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                    .WaitAndRetry(13, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                     {
                         _logger.LogWarning($"{ex} \n DeliveryTag: {ea.DeliveryTag}");
                     });
